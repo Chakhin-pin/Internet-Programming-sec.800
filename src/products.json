@@ -1,0 +1,82 @@
+[
+  {
+    "id": "1",
+    "name": "ราวแขวนผ้าสแตนเลส 2 ชั้น",
+    "category": "ราวแขวนผ้า",
+    "price": 1290,
+    "stock": 45,
+    "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80"
+  },
+  {
+    "id": "2",
+    "name": "ราวแขวนเสื้อผ้าเหล็กพ่นสี ทรงตัว T",
+    "category": "ราวแขวนผ้า",
+    "price": 890,
+    "stock": 60,
+    "image": "https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=800&q=80"
+  },
+  {
+    "id": "3",
+    "name": "ราวแขวนผ้าพับได้ ล้อเลื่อน 4 ล้อ",
+    "category": "ราวแขวนผ้าแบบพับ",
+    "price": 1590,
+    "stock": 32,
+    "image": "https://images.unsplash.com/photo-1595515106969-1ce29566ff1c?w=800&q=80"
+  },
+  {
+    "id": "4",
+    "name": "ราวตากผ้าอเนกประสงค์ ปรับความสูงได้",
+    "category": "ราวตากผ้า",
+    "price": 990,
+    "stock": 50,
+    "image": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?w=800&q=80"
+  },
+  {
+    "id": "5",
+    "name": "ไม้แขวนเสื้อไม้บีช เคลือบเงา (แพ็ค 10 ชิ้น)",
+    "category": "ไม้แขวนเสื้อ",
+    "price": 350,
+    "stock": 120,
+    "image": "https://images.unsplash.com/photo-1489274495757-95c7c837b101?w=800&q=80"
+  },
+  {
+    "id": "6",
+    "name": "ไม้แขวนเสื้อพลาสติกกันลื่น (แพ็ค 20 ชิ้น)",
+    "category": "ไม้แขวนเสื้อ",
+    "price": 199,
+    "stock": 150,
+    "image": "https://images.unsplash.com/photo-1596466713836-4a1a95c66d97?w=800&q=80"
+  },
+  {
+    "id": "7",
+    "name": "ราวแขวนผ้าติดผนัง สแตนเลสพับเก็บได้",
+    "category": "ราวแขวนผ้าติดผนัง",
+    "price": 650,
+    "stock": 40,
+    "image": "https://images.unsplash.com/photo-1595429035839-c99c298ffdde?w=800&q=80"
+  },
+  {
+    "id": "8",
+    "name": "ราวแขวนผ้าทรงสี่เหลี่ยม 3 ชั้น พร้อมชั้นวางรองเท้า",
+    "category": "ราวแขวนผ้า",
+    "price": 2190,
+    "stock": 20,
+    "image": "https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=800&q=80"
+  },
+  {
+    "id": "9",
+    "name": "ราวแขวนผ้ากลม (Round Rack) สแตนเลสแท้",
+    "category": "ราวแขวนผ้าหน้าร้าน",
+    "price": 3290,
+    "stock": 15,
+    "image": "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=800&q=80"
+  },
+  {
+    "id": "10",
+    "name": "ที่หนีบผ้า/หนีบกางเกง สแตนเลส (แพ็ค 12 ชิ้น)",
+    "category": "อุปกรณ์เสริม",
+    "price": 149,
+    "stock": 200,
+    "image": "https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?w=800&q=80"
+  }
+]
