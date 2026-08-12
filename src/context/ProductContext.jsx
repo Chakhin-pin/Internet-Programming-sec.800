@@ -32,19 +32,29 @@ export const ProductProvider = ({ children }) => {
     ]);
   };
 
+  // แก้ไขสินค้าที่มีอยู่แล้วด้วย id (ใช้กับหน้า Edit product)
+  // updatedFields = เฉพาะฟิลด์ที่เปลี่ยน จะถูก merge ทับของเดิม
+  const updateProduct = (id, updatedFields) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p))
+    );
+  };
+
   // ลบสินค้าออกจากรายการด้วย id
   const deleteProduct = (id) => {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
   return (
-    <ProductContext.Provider value={{ products, addProduct, deleteProduct }}>
+    <ProductContext.Provider
+      value={{ products, addProduct, updateProduct, deleteProduct }}
+    >
       {children}
     </ProductContext.Provider>
   );
 };
 
-// Hook ไว้เรียกใช้ products/addProduct จากหน้าไหนก็ได้
+// Hook ไว้เรียกใช้ products/addProduct/updateProduct จากหน้าไหนก็ได้
 export const useProducts = () => {
   const ctx = useContext(ProductContext);
   if (!ctx) {

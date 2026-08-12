@@ -1,4 +1,15 @@
-import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
+import {
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import AppHeader from "../components/AppHeader";
 import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
@@ -7,8 +18,21 @@ import { colors } from "../theme/colors";
 const ProductListScreen = () => {
   const { products, deleteProduct } = useProducts();
 
+  // ไปหน้า Edit product พร้อมส่ง id ของสินค้าที่กดไป
+  const goToEdit = (product) => {
+    router.push({ pathname: "/edit-product", params: { id: product.id } });
+  };
+
   // ถามยืนยันก่อนลบทุกครั้ง กันกดพลาด
+  // หมายเหตุ: Alert.alert ของ React Native ไม่รองรับปุ่มหลายปุ่มบนเว็บ (react-native-web)
+  // เลยต้องเช็ค Platform แล้วใช้ window.confirm แทนเวลารันบนเว็บ ไม่งั้นปุ่ม "ลบ" จะกดไม่ได้เลย
   const confirmDelete = (product) => {
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(`ต้องการลบ "${product.name}" ใช่ไหม?`);
+      if (confirmed) deleteProduct(product.id);
+      return;
+    }
+
     Alert.alert(
       "ลบสินค้า",
       `ต้องการลบ "${product.name}" ใช่ไหม?`,
@@ -34,7 +58,12 @@ const ProductListScreen = () => {
           <Text style={styles.emptyText}>ยังไม่มีสินค้า ลองเพิ่มจากหน้า Add product</Text>
         ) : (
           products.map((product) => (
-            <View key={product.id} style={styles.card}>
+            <TouchableOpacity
+              key={product.id}
+              style={styles.card}
+              activeOpacity={0.7}
+              onPress={() => goToEdit(product)}
+            >
               {product.photo ? (
                 <Image source={{ uri: product.photo }} style={styles.thumbnail} />
               ) : (
@@ -55,13 +84,21 @@ const ProductListScreen = () => {
                 </View>
               </View>
 
+              {/* ปุ่มแก้ไข - กดแยกจากการ์ดได้เหมือนกัน เผื่อผู้ใช้มองหาไอคอนดินสอ */}
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => goToEdit(product)}
+              >
+                <Text style={styles.editIcon}>✏️</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => confirmDelete(product)}
               >
                 <Text style={styles.deleteIcon}>🗑️</Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -92,6 +129,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     marginBottom: 12,
+    alignItems: "center",
   },
   thumbnail: {
     width: 56,
@@ -122,6 +160,12 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: "row", alignItems: "center" },
   metaText: { fontSize: 12, color: colors.textMuted },
   metaDot: { fontSize: 12, color: colors.textMuted, marginHorizontal: 6 },
+  editButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingLeft: 10,
+  },
+  editIcon: { fontSize: 16 },
   deleteButton: {
     justifyContent: "center",
     alignItems: "center",
