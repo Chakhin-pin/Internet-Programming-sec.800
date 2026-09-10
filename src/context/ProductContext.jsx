@@ -37,15 +37,18 @@ export const ProductProvider = ({ children }) => {
   // helper ยิง request แนบ JWT ให้อัตโนมัติทุกครั้ง
 // ใหม่ (แทนทับ)
 const apiCall = async (path, options = {}) => {
-    const token = await AsyncStorage.getItem("token");
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-    });
+  const token = typeof window !== 'undefined'
+    ? localStorage.getItem('token')
+    : await AsyncStorage.getItem('token');
+    
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
 
     const data = await res.json().catch(() => ({}));
 
@@ -64,27 +67,33 @@ const apiCall = async (path, options = {}) => {
     return data;
   };
   // เข้าสู่ระบบ: ยิง /api/auth/login แล้วเก็บ token + user ไว้ใน AsyncStorage (จำ login ข้ามการเปิดแอปใหม่)
-  const login = async (username, password) => {
-    const data = await apiCall("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-      skipAuthRedirect: true,
-    });
-    await AsyncStorage.setItem("token", data.token);
-    await AsyncStorage.setItem("user", JSON.stringify(data.user));
-    setUser(data.user);
-    return data.user;
-  };
+const login = async (username, password) => {
+  const data = await apiCall("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+    skipAuthRedirect: true,
+  });
+  
+  // เก็บทั้ง AsyncStorage และ localStorage
+  await AsyncStorage.setItem("token", data.token);
+  await AsyncStorage.setItem("user", JSON.stringify(data.user));
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("user", JSON.stringify(data.user));
+  
+  setUser(data.user);
+  return data.user;
+};
 
-  // ออกจากระบบ: ล้าง token/user ทั้งหมด แล้วเคลียร์รายการสินค้าออกจากหน้าจอ
-  const logout = async () => {
-    await AsyncStorage.removeItem("token");
-    await AsyncStorage.removeItem("user");
-    setUser(null);
-    setProducts([]);
-    setTotal(0);
-    setFetchError(null);
-  };
+const logout = async () => {
+  await AsyncStorage.removeItem("token");
+  await AsyncStorage.removeItem("user");
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  setUser(null);
+  setProducts([]);
+  setTotal(0);
+  setFetchError(null);
+};
 
   // ดึงรายการสินค้า พร้อม search + pagination
   const loadProducts = async (query = searchQuery, pageNum = 1) => {

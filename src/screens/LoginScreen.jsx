@@ -1,15 +1,15 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useProducts } from "../context/ProductContext";
 import { colors } from "../theme/colors";
@@ -40,7 +40,7 @@ const LoginScreen = () => {
     setIsLoading(true);
     try {
       await login(username.trim(), password);
-      router.replace("/products");
+      router.replace("/");
     } catch (err) {
       showAlert("เข้าสู่ระบบไม่สำเร็จ", err.message || "username หรือ password ไม่ถูกต้อง");
     } finally {
