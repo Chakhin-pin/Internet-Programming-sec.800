@@ -104,33 +104,28 @@ const SettingsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  scroll: { padding: 18, paddingBottom: 30 },
+  container: { flex: 1, backgroundColor: colors.bgGray },
+  scroll: { padding: 20, paddingBottom: 30 },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 14, fontWeight: "800",
     color: colors.text,
     marginBottom: 8,
     marginTop: 4,
   },
   personalCard: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: colors.white, borderRadius: 18, padding: 17, borderWidth: 1, borderColor: colors.border,
     marginBottom: 20,
   },
   editIcon: { position: "absolute", top: 14, right: 14 },
   editIconText: { fontSize: 14, color: colors.primary },
   personalRow: { marginBottom: 10 },
-  personalLabel: { fontSize: 11, fontWeight: "700", color: colors.primary },
-  personalValue: { fontSize: 12, color: colors.text, marginTop: 2 },
+  personalLabel: { fontSize: 11, fontWeight: "700", color: colors.textMuted },
+  personalValue: { fontSize: 13, color: colors.text, marginTop: 3 },
   roleList: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: colors.white, borderRadius: 18, padding: 13, borderWidth: 1, borderColor: colors.border,
     marginBottom: 20,
   },
-  roleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
+  roleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   checkbox: {
     width: 16,
     height: 16,
@@ -146,8 +141,8 @@ const styles = StyleSheet.create({
   roleLabel: { flex: 1, fontSize: 13, color: colors.textMuted },
   roleLabelSelected: { color: colors.primary, fontWeight: "700" },
   rolePencil: { fontSize: 13, color: colors.primary },
-  toggleCard: { backgroundColor: colors.bgGray, borderRadius: 14, padding: 12 },
-  toggleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
+  toggleCard: { backgroundColor: colors.white, borderRadius: 18, padding: 13, borderWidth: 1, borderColor: colors.border },
+  toggleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   toggleCheck: {
     color: colors.success,
     fontSize: 13,

@@ -1,4 +1,5 @@
-  require('dotenv').config();
+  const path = require('path');
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
   const express = require('express');
   const cors = require('cors');
   const mysql = require('mysql2/promise');
@@ -7,11 +8,24 @@
 
   const app = express();
   const port = process.env.PORT || 3014;
-  // ใช้ค่าใน .env ถ้ามี ไม่งั้น fallback เป็นค่า default (ควรตั้ง JWT_SECRET ใน .env จริงจังก่อน deploy ใช้งานจริง)
-  const JWT_SECRET = process.env.JWT_SECRET || 'boxbox-dev-secret-change-me';
+  const JWT_SECRET = process.env.JWT_SECRET;
+
+  const requiredEnvironment = [
+    'DB_HOST',
+    'DB_USER',
+    'DB_PASSWORD',
+    'DB_NAME',
+    'JWT_SECRET',
+  ];
+  const missingEnvironment = requiredEnvironment.filter((name) => !process.env[name]);
+  if (missingEnvironment.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingEnvironment.join(', ')}`);
+  }
 
   app.use(cors());
-  app.use(express.json({ limit: '5mb' }));
+  // Product images are sent as Base64. The request grows by roughly one third
+  // when encoded, so leave enough room for a normal compressed product photo.
+  app.use(express.json({ limit: '12mb' }));
 
   // MySQL Connection
   const pool = mysql.createPool({
@@ -68,25 +82,41 @@
 
   // ---- Auth routes ----
 
-  // POST เข้าสู่ระบบ - เช็ค username/password กับตาราง users แล้วออก JWT กลับไป
+  // POST login - user credentials and roles are stored in MySQL.
   app.post('/api/auth/login', async (req, res) => {
-  const { username, password } = req.body;
-  
-  // Hardcode สำหรับทดสอบ
-  if (username === 'admin' && password === '1234') {
-    const token = jwt.sign(
-      { userId: 1, username: 'admin', role: 'admin' },
-      JWT_SECRET,
-      { expiresIn: '8h' }
-    );
-    return res.json({
-      token,
-      user: { id: 1, username: 'admin', role: 'admin' },
-    });
-  }
-  
-  return res.status(401).json({ error: 'Invalid username or password' });
-});
+    const { username, password } = req.body;
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    try {
+      const [rows] = await pool.query(
+        'SELECT user_id, username, password, role FROM users WHERE username = ? LIMIT 1',
+        [username.trim()]
+      );
+      const account = rows[0];
+      const passwordMatches = account && await bcrypt.compare(password, account.password);
+
+      if (!passwordMatches) {
+        return res.status(401).json({ error: 'Invalid username or password' });
+      }
+
+      const user = {
+        id: account.user_id,
+        username: account.username,
+        role: account.role,
+      };
+      const token = jwt.sign(
+        { userId: user.id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+      );
+      return res.json({ token, user });
+    } catch (error) {
+      console.error('Login Error:', error.message);
+      return res.status(500).json({ error: 'Unable to sign in' });
+    }
+  });
 
   // GET all products - รองรับ search (q) + pagination (page, limit)
   // ต้อง login ก่อนถึงจะดูสินค้าได้ (authenticateToken) แต่ไม่ต้องเป็น admin
@@ -156,20 +186,69 @@
         name, stock, category, location, image, status, brand, sizes,
         productCode, orderName, price, description, storeAvailability,
       } = req.body;
+
+      const normalizedName = typeof name === 'string' ? name.trim() : '';
+      const normalizedProductCode = typeof productCode === 'string' ? productCode.trim() : '';
+      const normalizedCategory = typeof category === 'string' ? category.trim() : '';
+      const normalizedStore = typeof storeAvailability === 'string' ? storeAvailability.trim() : '';
+      const numericPrice = Number(price);
+      const numericStock = Number(stock);
+
+      if (!normalizedName || !normalizedProductCode || !normalizedCategory || !normalizedStore || !image) {
+        return res.status(400).json({ error: 'Missing required product fields' });
+      }
+      if (typeof image !== 'string' || /^(blob:|file:|content:)/i.test(image)) {
+        return res.status(400).json({
+          error: 'รูปภาพยังเป็นไฟล์ชั่วคราว กรุณาเลือกหรือวางรูปใหม่แล้วลองอีกครั้ง',
+        });
+      }
+      if (!Number.isFinite(numericPrice) || numericPrice < 0) {
+        return res.status(400).json({ error: 'Price must be a number greater than or equal to zero' });
+      }
+      if (!Number.isInteger(numericStock) || numericStock < 0) {
+        return res.status(400).json({ error: 'Stock must be a non-negative integer' });
+      }
+
       const [result] = await pool.query(
         `INSERT INTO products
           (name, stock, category, location, image, status, brand, sizes, productCode, orderName, price, description, storeAvailability, lastUpdate)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
-          name, stock, category, location ?? null, image, status ?? 'Active',
-          brand ?? null, sizes ?? null, productCode, orderName ?? null,
-          price, description ?? null, storeAvailability ?? null,
+          normalizedName, numericStock, normalizedCategory, location ?? null, image, status ?? 'Active',
+          brand ?? null, sizes ?? null, normalizedProductCode, orderName ?? null,
+          numericPrice, description ?? null, normalizedStore,
         ]
       );
       res.status(201).json({ id: result.insertId, message: 'Product created' });
     } catch (e) {
-      console.error('Create Error:', e.message);
-      res.status(500).json({ error: 'Failed to create product' });
+      // Keep the full error in the server log, but return a useful, safe message
+      // to the form so the user knows which input needs attention.
+      console.error('Create Error:', {
+        code: e.code,
+        errno: e.errno,
+        sqlMessage: e.sqlMessage,
+        message: e.message,
+      });
+      if (e.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'Product code already exists' });
+      }
+      if (e.code === 'ER_DATA_TOO_LONG') {
+        const column = e.sqlMessage?.match(/column '([^']+)'/i)?.[1];
+        return res.status(400).json({
+          error: column
+            ? `ข้อมูลในช่อง ${column} ยาวเกินกว่าที่ฐานข้อมูลรองรับ`
+            : 'ข้อมูลบางช่องยาวเกินกว่าที่ฐานข้อมูลรองรับ',
+        });
+      }
+      if (e.code === 'ER_BAD_FIELD_ERROR') {
+        return res.status(500).json({
+          error: 'โครงสร้างฐานข้อมูลยังไม่รองรับข้อมูลจากฟอร์มนี้ กรุณาตรวจสอบ migration',
+        });
+      }
+      if (e.code === 'ER_NO_DEFAULT_FOR_FIELD' || e.code === 'ER_BAD_NULL_ERROR') {
+        return res.status(400).json({ error: 'มีข้อมูลจำเป็นบางรายการไม่ถูกส่งไปยังฐานข้อมูล' });
+      }
+      res.status(500).json({ error: 'บันทึกสินค้าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' });
     }
   });
 
@@ -227,6 +306,20 @@
       console.error('Delete Product Error:', e.message);
       res.status(500).json({ error: 'Failed to delete product: ' + (e.message || 'Unknown error') });
     }
+  });
+
+  // Images sent as Base64 can exceed the JSON request limit before reaching the route.
+  // Return a message the app can show instead of Express' default HTML error response.
+  app.use((error, req, res, next) => {
+    if (error?.type === 'entity.too.large') {
+      return res.status(413).json({
+        error: 'รูปภาพมีขนาดใหญ่เกิน 12 MB กรุณาเลือกรูปที่เล็กลง',
+      });
+    }
+    if (error instanceof SyntaxError && 'body' in error) {
+      return res.status(400).json({ error: 'ข้อมูลที่ส่งมาไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' });
+    }
+    return next(error);
   });
 
   app.listen(port, '0.0.0.0', () => {

@@ -1,17 +1,18 @@
-// ธีมสีกลาง ใช้ร่วมกันทุกหน้าจอ (โทนม่วงตามภาพต้นแบบ)
 export const colors = {
-  primary: "#CC9B71",       // ม่วงเข้ม ใช้กับปุ่มหลัก/ตัวหนังสือเน้น
-  primaryDark: "#b37d4e",   // ม่วงเข้มขึ้น ใช้กับปุ่ม Save
-  primaryLight: "#fcf8f2",  // ม่วงอ่อน ใช้กับพื้นหลังการ์ด
-  primarySoft: "#ffffff",   // ม่วงอ่อนมาก
+  primary: "#4F46E5",
+  primaryDark: "#312E81",
+  primaryLight: "#E0E7FF",
+  primarySoft: "#F5F7FF",
   white: "#FFFFFF",
-  bgGray: "#F7F7FA",        // เทาอ่อน ใช้กับพื้นหลัง input
-  border: "#ECECF1",
-  text: "#1F1147",          // ตัวหนังสือหลัก (ม่วงเข้มเกือบดำ)
-  textMuted: "#8B8B99",     // ตัวหนังสือรอง/placeholder
-  success: "#12B76A",       // สีเขียว ใช้กับ % เพิ่มขึ้น / checkmark
-  amber: "#B45309",         // สีน้ำตาลส้ม ใช้กับ Item categories / รายชื่อสาขา
+  bgGray: "#F8FAFC",
+  surface: "#FFFFFF",
+  border: "#E2E8F0",
+  text: "#172033",
+  textMuted: "#64748B",
+  success: "#059669",
+  danger: "#DC2626",
+  amber: "#B45309",
+  shadow: "#0F172A",
 };
 
-// สีชุดกราฟแท่ง (จากอ่อนไปเข้ม) ใช้กับ Revenue stacked chart
-export const chartPalette = ["#FFF4C7", "#deb28c", "#CC9B71", "#b37d4e"]; 
+export const chartPalette = ["#4F46E5", "#0D9488", "#F59E0B", "#8B5CF6"];

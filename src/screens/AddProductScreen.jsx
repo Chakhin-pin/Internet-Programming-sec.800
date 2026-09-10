@@ -1,3 +1,4 @@
+import { Picker } from "@react-native-picker/picker";
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -20,8 +21,6 @@ import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
 import { colors } from "../theme/colors";
 
-// Alert.alert ของ React Native ไม่แสดงผลบนเว็บ (react-native-web) เลย แม้จะมีปุ่มเดียวก็ตาม
-// เลยต้องสลับไปใช้ window.alert บนเว็บ ไม่งั้นข้อความ "กรอกไม่ครบ"/"สำเร็จ"/"ผิดพลาด" จะเงียบหายไปหมด
 const showAlert = (title, message, onOk) => {
   if (Platform.OS === "web") {
     window.alert(message ? `${title}\n\n${message}` : title);
@@ -31,102 +30,106 @@ const showAlert = (title, message, onOk) => {
   Alert.alert(title, message, onOk ? [{ text: "ตกลง", onPress: onOk }] : undefined);
 };
 
-// รายการฟิลด์แบบ input ธรรมดา (name, description, category, price, item code, stock size)
+const CATEGORIES = ["ทำจากไม้", "ทำงานเหล็ก", "ทำจากพลาสติก"];
+
 const FIELDS = [
-  { key: "name", label: "Name*", multiline: false, required: true },
-  { key: "description", label: "Description", multiline: true, required: false },
-  { key: "category", label: "Category*", multiline: false, required: true },
-  { key: "price", label: "Price*", multiline: false, required: true },
-  { key: "itemCode", label: "Item code*", multiline: false, required: true },
-  { key: "stockSize", label: "Stock size*", multiline: false, required: true },
+  { key: "name",        label: "Name*",        multiline: false, required: true },
+  { key: "description", label: "Description",  multiline: true,  required: false },
+  { key: "price",       label: "Price*",       multiline: false, required: true },
+  { key: "itemCode",    label: "Item code*",   multiline: false, required: true },
+  { key: "stockSize",   label: "Stock size*",  multiline: false, required: true },
 ];
 
-// สาขาที่มีให้เลือก (แตะที่ dropdown เพื่อวนเลือกทีละสาขา - เป็น picker แบบง่าย ยังไม่ใช่ modal เต็มรูปแบบ)
 const STORES = ["สาขาบางนา กรุงเทพฯ", "สาขารังสิต ปทุมธานี", "สาขาระยอง", "สาขาชลบุรี"];
 
 const AddProductScreen = () => {
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState({ category: CATEGORIES[0] }); // default category
   const [isSaving, setIsSaving] = useState(false);
   const { addProduct } = useProducts();
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  // แตะ dropdown แต่ละครั้งจะวนไปสาขาถัดไป (picker แบบง่าย ไม่ต้องพึ่ง library เพิ่ม)
   const cycleStore = () => {
     const currentIndex = STORES.indexOf(form.store);
     const nextStore = STORES[(currentIndex + 1) % STORES.length];
     update("store", nextStore);
   };
 
-  // เลือกรูปจากคลังภาพในเครื่อง (ต้องขอสิทธิ์ก่อน)
   const pickFromDevice = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       showAlert("ต้องขออนุญาต", "กรุณาอนุญาตให้แอปเข้าถึงคลังภาพในตั้งค่าเครื่อง");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.7,
+      base64: true,
     });
-
     if (!result.canceled && result.assets?.length > 0) {
-      update("photo", result.assets[0].uri);
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        showAlert("เลือกรูปไม่สำเร็จ", "ไม่สามารถเตรียมรูปภาพเพื่อบันทึกได้ กรุณาลองเลือกรูปอีกครั้ง");
+        return;
+      }
+      update("photo", `data:image/jpeg;base64,${asset.base64}`);
     }
   };
 
-  // วางรูปที่คัดลอกมาจากเว็บ/แอปอื่น (long-press "copy image" ที่เว็บ แล้วมากดปุ่มนี้)
   const pasteFromClipboard = async () => {
     const hasImage = await Clipboard.hasImageAsync();
     if (!hasImage) {
-      showAlert(
-        "ไม่พบรูปใน Clipboard",
-        "ลอง copy รูปจากเว็บก่อน (กดค้างที่รูป > Copy image) แล้วค่อยกดปุ่มนี้อีกครั้ง"
-      );
+      showAlert("ไม่พบรูปใน Clipboard", "ลอง copy รูปจากเว็บก่อน แล้วค่อยกดปุ่มนี้อีกครั้ง");
       return;
     }
-
     const clipboardImage = await Clipboard.getImageAsync({ format: "png" });
     if (clipboardImage?.data) {
-      update("photo", clipboardImage.data); // data เป็น base64 data URI ใช้แสดงผลกับ <Image> ได้เลย
+      const dataUri = clipboardImage.data.startsWith("data:")
+        ? clipboardImage.data
+        : `data:image/png;base64,${clipboardImage.data}`;
+      update("photo", dataUri);
     }
   };
 
   const handleSave = async () => {
-    if (isSaving) return; // กันกดซ้ำระหว่างกำลังบันทึก
+    if (isSaving) return;
 
-    // เช็คฟิลด์ที่จำเป็น (required) ว่ากรอกครบหรือยัง
     const missing = FIELDS.filter((f) => f.required && !form[f.key]?.trim());
-    if (!form.store) missing.push({ label: "Stores availability*" });
-    if (!form.photo) missing.push({ label: "Product photos*" });
+    if (!form.store)  missing.push({ label: "Stores availability*" });
+    if (!form.photo)  missing.push({ label: "Product photos*" });
 
     if (missing.length > 0) {
-      showAlert(
-        "กรอกข้อมูลไม่ครบ",
-        `กรุณากรอก: ${missing.map((f) => f.label.replace("*", "")).join(", ")}`
-      );
+      showAlert("กรอกข้อมูลไม่ครบ", `กรุณากรอก: ${missing.map((f) => f.label.replace("*", "")).join(", ")}`);
+      return;
+    }
+
+    const price = Number(form.price);
+    const stockSize = Number(form.stockSize);
+    if (!Number.isFinite(price) || price < 0) {
+      showAlert("ราคาไม่ถูกต้อง", "กรุณากรอกราคาเป็นตัวเลขตั้งแต่ 0 ขึ้นไป");
+      return;
+    }
+    if (!Number.isInteger(stockSize) || stockSize < 0) {
+      showAlert("จำนวนสต็อกไม่ถูกต้อง", "กรุณากรอกจำนวนสต็อกเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป");
       return;
     }
 
     setIsSaving(true);
     try {
-      // ส่งฟิลด์ทั้งหมดที่ผู้ใช้กรอกไปให้ Context แปลงเป็น payload ของ backend เอง
       await addProduct({
-        name: form.name,
-        description: form.description,
-        category: form.category,
-        price: form.price,
-        itemCode: form.itemCode,
-        stockSize: form.stockSize,
-        store: form.store,
-        photo: form.photo,
+        name:        form.name.trim(),
+        description: form.description?.trim(),
+        category:    form.category,   // ← ส่ง category จาก Picker
+        price,
+        itemCode:    form.itemCode.trim(),
+        stockSize,
+        store:       form.store,
+        photo:       form.photo,
       });
 
-      setForm({});
+      setForm({ category: CATEGORIES[0] });
       showAlert("สำเร็จ", "เพิ่มสินค้าเรียบร้อยแล้ว", () => router.push("/products"));
     } catch (err) {
-      // แสดง error จริงจาก backend (เช่น field ไม่ครบ, server พัง) แทนที่จะเงียบหาย
       showAlert("บันทึกไม่สำเร็จ", err.message || "ไม่สามารถเพิ่มสินค้าได้ ลองใหม่อีกครั้ง");
     } finally {
       setIsSaving(false);
@@ -136,8 +139,10 @@ const AddProductScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader title="Add product" />
-
       <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.pageIntro}><Text style={styles.pageTitle}>เพิ่มสินค้าใหม่</Text><Text style={styles.pageSubtitle}>กรอกรายละเอียดเพื่อเพิ่มสินค้าเข้าสู่คลัง</Text></View>
+
+        {/* TextInput fields ปกติ (ไม่มี category แล้ว) */}
         {FIELDS.map((field) => (
           <View key={field.key} style={styles.fieldGroup}>
             <Text style={styles.label}>{field.label}</Text>
@@ -151,28 +156,37 @@ const AddProductScreen = () => {
           </View>
         ))}
 
-        {/* Dropdown สำหรับเลือกสาขาที่มีสินค้า */}
+        {/* Picker สำหรับ Category */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Category*</Text>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={form.category}
+              onValueChange={(val) => update("category", val)}
+            >
+              {CATEGORIES.map((cat) => (
+                <Picker.Item key={cat} label={cat} value={cat} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        {/* Dropdown สาขา */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Stores availability*</Text>
           <TouchableOpacity style={styles.dropdown} onPress={cycleStore}>
-            <Text style={styles.dropdownText}>
-              {form.store || "แตะเพื่อเลือกสาขา"}
-            </Text>
+            <Text style={styles.dropdownText}>{form.store || "แตะเพื่อเลือกสาขา"}</Text>
             <Text style={styles.dropdownArrow}>⌄</Text>
           </TouchableOpacity>
         </View>
 
-        {/* กล่องอัปโหลดรูปสินค้า */}
+        {/* อัปโหลดรูป */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Product photos*</Text>
-
           {form.photo ? (
             <View style={styles.photoPreviewWrap}>
               <Image source={{ uri: form.photo }} style={styles.photoPreview} />
-              <TouchableOpacity
-                style={styles.photoRemoveButton}
-                onPress={() => update("photo", null)}
-              >
+              <TouchableOpacity style={styles.photoRemoveButton} onPress={() => update("photo", null)}>
                 <Text style={styles.photoRemoveText}>✕ เอารูปออก</Text>
               </TouchableOpacity>
             </View>
@@ -182,7 +196,6 @@ const AddProductScreen = () => {
               <Text style={styles.photoText}>ยังไม่มีรูปสินค้า</Text>
             </View>
           )}
-
           <View style={styles.photoButtonRow}>
             <TouchableOpacity style={styles.photoActionButton} onPress={pickFromDevice}>
               <Text style={styles.photoActionText}>📁 เลือกจากเครื่อง</Text>
@@ -200,86 +213,63 @@ const AddProductScreen = () => {
             <Text style={styles.saveButtonText}>Save product</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
 
+      </ScrollView>
       <BottomNav />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  scroll: { padding: 18, paddingBottom: 30 },
-  fieldGroup: { marginBottom: 14 },
-  label: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.primary,
-    marginBottom: 6,
-  },
+  container: { flex: 1, backgroundColor: colors.bgGray },
+  scroll: { padding: 20, paddingBottom: 30 },
+  pageIntro: { marginBottom: 22 }, pageTitle: { fontSize: 23, fontWeight: "800", color: colors.text }, pageSubtitle: { fontSize: 13, color: colors.textMuted, marginTop: 5 },
+  fieldGroup: { marginBottom: 17 },
+  label: { fontSize: 12, fontWeight: "800", color: colors.text, marginBottom: 7 },
   input: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 13, paddingVertical: 12,
     fontSize: 13,
     color: colors.text,
   },
   inputMultiline: { height: 80, textAlignVertical: "top" },
+  pickerWrapper: {
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
   dropdown: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 13, paddingVertical: 13,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  dropdownText: { fontSize: 13, color: colors.textMuted },
+  dropdownText: { fontSize: 13, color: colors.text },
   dropdownArrow: { fontSize: 13, color: colors.textMuted },
   photoBox: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    height: 90,
+    backgroundColor: colors.white, borderWidth: 1, borderStyle: "dashed", borderColor: colors.primary,
+    borderRadius: 12, height: 110,
     justifyContent: "center",
     alignItems: "center",
   },
   photoIcon: { fontSize: 22, marginBottom: 4 },
   photoText: { fontSize: 12, color: colors.textMuted },
   photoPreviewWrap: { marginBottom: 10 },
-  photoPreview: {
-    width: "100%",
-    height: 160,
-    borderRadius: 10,
-    backgroundColor: colors.bgGray,
-  },
-  photoRemoveButton: {
-    alignSelf: "flex-start",
-    marginTop: 6,
-  },
+  photoPreview: { width: "100%", height: 180, borderRadius: 12, backgroundColor: colors.bgGray },
+  photoRemoveButton: { alignSelf: "flex-start", marginTop: 6 },
   photoRemoveText: { fontSize: 12, color: colors.textMuted },
-  photoButtonRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  photoButtonRow: { flexDirection: "row", gap: 10 },
   photoActionButton: {
     flex: 1,
-    backgroundColor: colors.primaryLight,
-    borderRadius: 10,
-    paddingVertical: 10,
+    backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryLight,
+    borderRadius: 11, paddingVertical: 11,
     alignItems: "center",
   },
-  photoActionText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.primary,
-  },
+  photoActionText: { fontSize: 12, fontWeight: "600", color: colors.primary },
   saveButton: {
     backgroundColor: colors.primaryDark,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
+    borderRadius: 13, paddingVertical: 15, alignItems: "center", marginTop: 8,
   },
   saveButtonText: { color: colors.white, fontSize: 14, fontWeight: "700" },
 });

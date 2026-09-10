@@ -119,7 +119,7 @@ const ProductListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader title="Products" />
+      <AppHeader title="สินค้า" />
 
       {/* แถบผู้ใช้ปัจจุบัน + ปุ่มออกจากระบบ */}
       <View style={styles.userBar}>
@@ -133,6 +133,7 @@ const ProductListScreen = () => {
 
       {/* Search bar */}
       <View style={styles.searchWrap}>
+        <Text style={styles.searchIcon}>⌕</Text>
         <TextInput
           style={styles.searchInput}
           placeholder="ค้นหาสินค้า..."
@@ -148,7 +149,7 @@ const ProductListScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.sectionTitle}>สินค้าทั้งหมด ({products.length})</Text>
+        <View style={styles.listHeading}><Text style={styles.sectionTitle}>รายการสินค้า</Text><Text style={styles.resultCount}>{products.length} รายการ</Text></View>
 
         {isLoading && (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
@@ -228,26 +229,23 @@ const ProductListScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+  container: { flex: 1, backgroundColor: colors.bgGray },
   userBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 18,
-    paddingTop: 6,
+    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 3,
   },
   userBarText: { fontSize: 12, color: colors.textMuted, fontWeight: "600" },
   logoutText: { fontSize: 12, color: "#e53935", fontWeight: "700" },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    marginHorizontal: 18,
-    marginTop: 10,
-    paddingHorizontal: 12,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 13, marginHorizontal: 20, marginTop: 10, paddingHorizontal: 13,
   },
-  searchInput: { flex: 1, height: 40, fontSize: 14, color: colors.text },
+  searchIcon: { fontSize: 20, color: colors.textMuted, marginRight: 7, marginTop: -3 },
+  searchInput: { flex: 1, height: 44, fontSize: 14, color: colors.text },
   clearIcon: { fontSize: 14, color: colors.textMuted, paddingLeft: 8 },
   retryButton: {
     marginTop: 10,
@@ -257,22 +255,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: { color: colors.white, fontWeight: "700" },
-  scroll: { padding: 18, paddingBottom: 30 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: colors.text, marginBottom: 14 },
-  emptyText: { fontSize: 13, color: colors.textMuted, textAlign: "center", marginTop: 40 },
+  scroll: { padding: 20, paddingBottom: 30 },
+  listHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14, marginTop: 2 },
+  sectionTitle: { fontSize: 18, fontWeight: "800", color: colors.text },
+  resultCount: { fontSize: 12, color: colors.textMuted, backgroundColor: colors.primaryLight, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5, fontWeight: "700" },
+  emptyText: { fontSize: 13, color: colors.textMuted, textAlign: "center", marginTop: 40, backgroundColor: colors.white, padding: 24, borderRadius: 16 },
   card: {
     flexDirection: "row",
-    backgroundColor: colors.bgGray,
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 16, padding: 12,
     marginBottom: 12,
     alignItems: "center",
   },
-  thumbnail: { width: 56, height: 56, borderRadius: 10, marginRight: 12, backgroundColor: colors.white },
+  thumbnail: { width: 58, height: 58, borderRadius: 12, marginRight: 12, backgroundColor: colors.white },
   thumbnailPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
+    width: 58, height: 58, borderRadius: 12,
     marginRight: 12,
     backgroundColor: colors.primaryLight,
     justifyContent: "center",
@@ -281,14 +278,14 @@ const styles = StyleSheet.create({
   thumbnailPlaceholderIcon: { fontSize: 20 },
   cardInfo: { flex: 1, justifyContent: "center" },
   cardTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  name: { fontSize: 14, fontWeight: "700", color: colors.text, flex: 1, marginRight: 8 },
-  price: { fontSize: 14, fontWeight: "700", color: colors.primary },
+  name: { fontSize: 14, fontWeight: "800", color: colors.text, flex: 1, marginRight: 8 },
+  price: { fontSize: 13, fontWeight: "800", color: colors.primary },
   metaRow: { flexDirection: "row", alignItems: "center" },
   metaText: { fontSize: 12, color: colors.textMuted },
   metaDot: { fontSize: 12, color: colors.textMuted, marginHorizontal: 6 },
-  editButton: { justifyContent: "center", alignItems: "center", paddingLeft: 10 },
+  editButton: { justifyContent: "center", alignItems: "center", paddingLeft: 9, backgroundColor: colors.primarySoft, width: 32, height: 32, borderRadius: 10, marginLeft: 8 },
   editIcon: { fontSize: 16 },
-  deleteButton: { justifyContent: "center", alignItems: "center", paddingLeft: 10 },
+  deleteButton: { justifyContent: "center", alignItems: "center", width: 32, height: 32, borderRadius: 10, marginLeft: 7, backgroundColor: "#FEF2F2" },
   deleteButtonDisabled: { opacity: 0.5 },
   deleteIcon: { fontSize: 18 },
 });

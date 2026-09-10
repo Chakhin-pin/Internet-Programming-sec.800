@@ -51,8 +51,9 @@ const LoginScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Boxbox</Text>
-        <Text style={styles.subtitle}>เข้าสู่ระบบเพื่อจัดการสินค้า</Text>
+        <View style={styles.brandMark}><Text style={styles.brandMarkText}>B</Text></View>
+        <Text style={styles.title}>ยินดีต้อนรับกลับมา</Text>
+        <Text style={styles.subtitle}>เข้าสู่ BOXBOX เพื่อดูแลคลังสินค้าของคุณ</Text>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Username</Text>
@@ -91,10 +92,12 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  content: { flex: 1, justifyContent: "center", padding: 24 },
+  container: { flex: 1, backgroundColor: colors.primarySoft },
+  content: { flex: 1, justifyContent: "center", padding: 24, maxWidth: 460, width: "100%", alignSelf: "center" },
+  brandMark: { width: 56, height: 56, borderRadius: 18, backgroundColor: colors.primaryDark, alignItems: "center", justifyContent: "center", alignSelf: "center", marginBottom: 22 },
+  brandMarkText: { color: colors.white, fontSize: 27, fontWeight: "800" },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     color: colors.primaryDark,
     textAlign: "center",
@@ -104,27 +107,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textMuted,
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: 30, lineHeight: 20,
   },
   fieldGroup: { marginBottom: 16 },
   label: {
     fontSize: 12,
     fontWeight: "600",
-    color: colors.primary,
+    color: colors.text,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
     fontSize: 14,
     color: colors.text,
   },
   loginButton: {
     backgroundColor: colors.primaryDark,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 12, paddingVertical: 15,
     alignItems: "center",
     marginTop: 10,
   },

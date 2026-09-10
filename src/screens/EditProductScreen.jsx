@@ -74,12 +74,18 @@ const EditProductScreen = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.7,
+      base64: true,
     });
 
     if (!result.canceled && result.assets?.length > 0) {
-      update("photo", result.assets[0].uri);
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        showAlert("เลือกรูปไม่สำเร็จ", "ไม่สามารถเตรียมรูปภาพเพื่อบันทึกได้ กรุณาลองเลือกรูปอีกครั้ง");
+        return;
+      }
+      update("photo", `data:image/jpeg;base64,${asset.base64}`);
     }
   };
 
@@ -96,7 +102,10 @@ const EditProductScreen = () => {
 
     const clipboardImage = await Clipboard.getImageAsync({ format: "png" });
     if (clipboardImage?.data) {
-      update("photo", clipboardImage.data);
+      const dataUri = clipboardImage.data.startsWith("data:")
+        ? clipboardImage.data
+        : `data:image/png;base64,${clipboardImage.data}`;
+      update("photo", dataUri);
     }
   };
 
@@ -190,6 +199,7 @@ const EditProductScreen = () => {
       <AppHeader title="Edit product" />
 
       <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.pageIntro}><Text style={styles.pageTitle}>แก้ไขสินค้า</Text><Text style={styles.pageSubtitle}>อัปเดตรายละเอียดและจำนวนคงเหลือของรายการนี้</Text></View>
         {FIELDS.map((field) => (
           <View key={field.key} style={styles.fieldGroup}>
             <Text style={styles.label}>{field.label}</Text>
@@ -268,39 +278,32 @@ const EditProductScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  scroll: { padding: 18, paddingBottom: 30 },
-  fieldGroup: { marginBottom: 14 },
+  container: { flex: 1, backgroundColor: colors.bgGray },
+  scroll: { padding: 20, paddingBottom: 30 },
+  pageIntro: { marginBottom: 22 }, pageTitle: { fontSize: 23, fontWeight: "800", color: colors.text }, pageSubtitle: { fontSize: 13, color: colors.textMuted, marginTop: 5 },
+  fieldGroup: { marginBottom: 17 },
   label: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.primary,
-    marginBottom: 6,
+    fontSize: 12, fontWeight: "800", color: colors.text, marginBottom: 7,
   },
   input: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 13, paddingVertical: 12,
     fontSize: 13,
     color: colors.text,
   },
   inputMultiline: { height: 80, textAlignVertical: "top" },
   dropdown: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 13, paddingVertical: 13,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  dropdownText: { fontSize: 13, color: colors.textMuted },
+  dropdownText: { fontSize: 13, color: colors.text },
   dropdownArrow: { fontSize: 13, color: colors.textMuted },
   photoBox: {
-    backgroundColor: colors.bgGray,
-    borderRadius: 10,
-    height: 90,
+    backgroundColor: colors.white, borderWidth: 1, borderStyle: "dashed", borderColor: colors.primary,
+    borderRadius: 12, height: 110,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -309,8 +312,7 @@ const styles = StyleSheet.create({
   photoPreviewWrap: { marginBottom: 10 },
   photoPreview: {
     width: "100%",
-    height: 160,
-    borderRadius: 10,
+    height: 180, borderRadius: 12,
     backgroundColor: colors.bgGray,
   },
   photoRemoveButton: {
@@ -324,9 +326,8 @@ const styles = StyleSheet.create({
   },
   photoActionButton: {
     flex: 1,
-    backgroundColor: colors.primaryLight,
-    borderRadius: 10,
-    paddingVertical: 10,
+    backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryLight,
+    borderRadius: 11, paddingVertical: 11,
     alignItems: "center",
   },
   photoActionText: {
@@ -336,15 +337,13 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: colors.primaryDark,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 13, paddingVertical: 15,
     alignItems: "center",
     marginTop: 8,
   },
   saveButtonText: { color: colors.white, fontSize: 14, fontWeight: "700" },
   deleteButton: {
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 13, paddingVertical: 14,
     alignItems: "center",
     marginTop: 10,
     borderWidth: 1,

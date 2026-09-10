@@ -39,14 +39,17 @@ const AppHeader = ({ title, onMenuPress }) => {
   return (
     <>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} onPress={onMenuPress}>
-          <Text style={styles.menuIcon}>≡</Text>
+        <TouchableOpacity style={styles.brandMark} onPress={onMenuPress} activeOpacity={onMenuPress ? 0.7 : 1}>
+          <Text style={styles.brandMarkText}>B</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>{title}</Text>
+        <View style={styles.titleGroup}>
+          <Text style={styles.eyebrow}>BOXBOX INVENTORY</Text>
+          <Text style={styles.title}>{title}</Text>
+        </View>
 
         <TouchableOpacity style={styles.avatar} onPress={openProfile}>
-          <Text style={styles.avatarIcon}>👤</Text>
+          <Text style={styles.avatarIcon}>บัญชี</Text>
         </TouchableOpacity>
       </View>
 
@@ -65,9 +68,7 @@ const AppHeader = ({ title, onMenuPress }) => {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.avatarBig}>
-                <Text style={styles.avatarBigIcon}>👤</Text>
-              </View>
+              <View style={styles.avatarBig}><Text style={styles.avatarBigIcon}>บัญชี</Text></View>
               <Text style={styles.usernameText}>{user?.username || "admin"}</Text>
 
               {[
@@ -117,19 +118,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
     backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  iconButton: { width: 30, height: 30, justifyContent: "center", alignItems: "flex-start" },
-  menuIcon: { fontSize: 20, color: colors.text },
-  title: { fontSize: 17, fontWeight: "700", color: colors.text },
+  brandMark: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.primaryDark, justifyContent: "center", alignItems: "center", marginRight: 10 },
+  brandMarkText: { color: colors.white, fontSize: 16, fontWeight: "800" },
+  titleGroup: { flex: 1 },
+  eyebrow: { fontSize: 9, letterSpacing: 0.9, fontWeight: "800", color: colors.primary, marginBottom: 1 },
+  title: { fontSize: 16, fontWeight: "800", color: colors.text },
   avatar: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.primary,
+    minWidth: 38, height: 32, borderRadius: 16,
+    backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primaryLight,
     justifyContent: "center", alignItems: "center",
   },
-  avatarIcon: { fontSize: 15, color: colors.white },
+  avatarIcon: { fontSize: 10, color: colors.primary, fontWeight: "800", paddingHorizontal: 7 },
 
   overlay: {
     flex: 1, backgroundColor: "rgba(0,0,0,0.4)",
@@ -137,34 +142,34 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, maxHeight: "85%",
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 22, maxHeight: "85%",
   },
   sheetHeader: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", marginBottom: 16,
   },
-  sheetTitle: { fontSize: 16, fontWeight: "700", color: colors.text },
+  sheetTitle: { fontSize: 20, fontWeight: "800", color: colors.text },
   closeBtn: { fontSize: 16, color: colors.textMuted },
 
   avatarBig: {
     width: 64, height: 64, borderRadius: 32,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryDark,
     justifyContent: "center", alignItems: "center",
     alignSelf: "center", marginBottom: 8,
   },
-  avatarBigIcon: { fontSize: 30, color: colors.white },
+  avatarBigIcon: { fontSize: 12, color: colors.white, fontWeight: "700" },
   usernameText: {
     textAlign: "center", fontSize: 14,
     fontWeight: "700", color: colors.text, marginBottom: 20,
   },
 
-  fieldGroup: { marginBottom: 14 },
-  fieldLabel: { fontSize: 11, fontWeight: "600", color: colors.primary, marginBottom: 4 },
-  fieldValue: { fontSize: 13, color: colors.text, paddingVertical: 4 },
+  fieldGroup: { marginBottom: 16 },
+  fieldLabel: { fontSize: 11, fontWeight: "700", color: colors.textMuted, marginBottom: 5 },
+  fieldValue: { fontSize: 14, color: colors.text, paddingVertical: 6 },
   input: {
-    backgroundColor: colors.bgGray, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: colors.bgGray, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+    paddingHorizontal: 13, paddingVertical: 11,
     fontSize: 13, color: colors.text,
   },
 

@@ -1,10 +1,28 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 
 const ProductContext = createContext(null);
 
-// ⚠️ แก้ตรงนี้ให้เป็น URL backend จริงของคุณ (ตามที่ deploy บน server คณะ)
-const API_BASE_URL = "http://119.59.102.161:3014";
+// Configure this per environment in .env (for example EXPO_PUBLIC_API_URL=https://api.example.com).
+// The fallback keeps the current development server working, but production should use HTTPS.
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://119.59.102.161:3014";
+const isWeb = Platform.OS === "web";
+
+const getStoredAuth = async () => {
+  if (isWeb) {
+    return {
+      token: localStorage.getItem("token"),
+      userJson: localStorage.getItem("user"),
+    };
+  }
+
+  const [token, userJson] = await Promise.all([
+    AsyncStorage.getItem("token"),
+    AsyncStorage.getItem("user"),
+  ]);
+  return { token, userJson };
+};
 
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
@@ -23,8 +41,7 @@ export const ProductProvider = ({ children }) => {
   useEffect(() => {
     (async () => {
       try {
-        const token = await AsyncStorage.getItem("token");
-        const userJson = await AsyncStorage.getItem("user");
+        const { token, userJson } = await getStoredAuth();
         if (token && userJson) {
           setUser(JSON.parse(userJson));
         }
@@ -36,10 +53,10 @@ export const ProductProvider = ({ children }) => {
 
   // helper ยิง request แนบ JWT ให้อัตโนมัติทุกครั้ง
 // ใหม่ (แทนทับ)
-const apiCall = async (path, options = {}) => {
-  const token = typeof window !== 'undefined'
-    ? localStorage.getItem('token')
-    : await AsyncStorage.getItem('token');
+  const apiCall = async (path, options = {}) => {
+  const token = isWeb
+    ? localStorage.getItem("token")
+    : await AsyncStorage.getItem("token");
     
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -67,28 +84,32 @@ const apiCall = async (path, options = {}) => {
     return data;
   };
   // เข้าสู่ระบบ: ยิง /api/auth/login แล้วเก็บ token + user ไว้ใน AsyncStorage (จำ login ข้ามการเปิดแอปใหม่)
-const login = async (username, password) => {
+  const login = async (username, password) => {
   const data = await apiCall("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ username, password }),
     skipAuthRedirect: true,
   });
   
-  // เก็บทั้ง AsyncStorage และ localStorage
+  // Native has no localStorage. Keep web and native persistence separate.
   await AsyncStorage.setItem("token", data.token);
   await AsyncStorage.setItem("user", JSON.stringify(data.user));
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("user", JSON.stringify(data.user));
+  if (isWeb) {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+  }
   
   setUser(data.user);
   return data.user;
 };
 
-const logout = async () => {
+  const logout = async () => {
   await AsyncStorage.removeItem("token");
   await AsyncStorage.removeItem("user");
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  if (isWeb) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }
   setUser(null);
   setProducts([]);
   setTotal(0);
