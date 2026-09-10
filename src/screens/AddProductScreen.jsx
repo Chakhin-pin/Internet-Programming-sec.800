@@ -3,8 +3,10 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -17,6 +19,17 @@ import AppHeader from "../components/AppHeader";
 import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
 import { colors } from "../theme/colors";
+
+// Alert.alert ของ React Native ไม่แสดงผลบนเว็บ (react-native-web) เลย แม้จะมีปุ่มเดียวก็ตาม
+// เลยต้องสลับไปใช้ window.alert บนเว็บ ไม่งั้นข้อความ "กรอกไม่ครบ"/"สำเร็จ"/"ผิดพลาด" จะเงียบหายไปหมด
+const showAlert = (title, message, onOk) => {
+  if (Platform.OS === "web") {
+    window.alert(message ? `${title}\n\n${message}` : title);
+    onOk?.();
+    return;
+  }
+  Alert.alert(title, message, onOk ? [{ text: "ตกลง", onPress: onOk }] : undefined);
+};
 
 // รายการฟิลด์แบบ input ธรรมดา (name, description, category, price, item code, stock size)
 const FIELDS = [
@@ -33,6 +46,7 @@ const STORES = ["สาขาบางนา กรุงเทพฯ", "สา�
 
 const AddProductScreen = () => {
   const [form, setForm] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
   const { addProduct } = useProducts();
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -48,7 +62,7 @@ const AddProductScreen = () => {
   const pickFromDevice = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("ต้องขออนุญาต", "กรุณาอนุญาตให้แอปเข้าถึงคลังภาพในตั้งค่าเครื่อง");
+      showAlert("ต้องขออนุญาต", "กรุณาอนุญาตให้แอปเข้าถึงคลังภาพในตั้งค่าเครื่อง");
       return;
     }
 
@@ -66,7 +80,7 @@ const AddProductScreen = () => {
   const pasteFromClipboard = async () => {
     const hasImage = await Clipboard.hasImageAsync();
     if (!hasImage) {
-      Alert.alert(
+      showAlert(
         "ไม่พบรูปใน Clipboard",
         "ลอง copy รูปจากเว็บก่อน (กดค้างที่รูป > Copy image) แล้วค่อยกดปุ่มนี้อีกครั้ง"
       );
@@ -79,34 +93,44 @@ const AddProductScreen = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return; // กันกดซ้ำระหว่างกำลังบันทึก
+
     // เช็คฟิลด์ที่จำเป็น (required) ว่ากรอกครบหรือยัง
     const missing = FIELDS.filter((f) => f.required && !form[f.key]?.trim());
     if (!form.store) missing.push({ label: "Stores availability*" });
     if (!form.photo) missing.push({ label: "Product photos*" });
 
     if (missing.length > 0) {
-      Alert.alert(
+      showAlert(
         "กรอกข้อมูลไม่ครบ",
         `กรุณากรอก: ${missing.map((f) => f.label.replace("*", "")).join(", ")}`
       );
       return;
     }
 
-    // บันทึกสินค้าเข้ารายการกลาง (Context) แล้วเด้งไปหน้า Product list
-    addProduct({
-      name: form.name,
-      category: form.category,
-      price: form.price,
-      stockSize: form.stockSize,
-      photo: form.photo,
-    });
+    setIsSaving(true);
+    try {
+      // ส่งฟิลด์ทั้งหมดที่ผู้ใช้กรอกไปให้ Context แปลงเป็น payload ของ backend เอง
+      await addProduct({
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        price: form.price,
+        itemCode: form.itemCode,
+        stockSize: form.stockSize,
+        store: form.store,
+        photo: form.photo,
+      });
 
-    Alert.alert("สำเร็จ", "เพิ่มสินค้าเรียบร้อยแล้ว", [
-      { text: "ตกลง", onPress: () => router.push("/products") },
-    ]);
-
-    setForm({});
+      setForm({});
+      showAlert("สำเร็จ", "เพิ่มสินค้าเรียบร้อยแล้ว", () => router.push("/products"));
+    } catch (err) {
+      // แสดง error จริงจาก backend (เช่น field ไม่ครบ, server พัง) แทนที่จะเงียบหาย
+      showAlert("บันทึกไม่สำเร็จ", err.message || "ไม่สามารถเพิ่มสินค้าได้ ลองใหม่อีกครั้ง");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -122,6 +146,7 @@ const AddProductScreen = () => {
               value={form[field.key] || ""}
               onChangeText={(v) => update(field.key, v)}
               multiline={field.multiline}
+              keyboardType={field.key === "price" || field.key === "stockSize" ? "numeric" : "default"}
             />
           </View>
         ))}
@@ -168,8 +193,12 @@ const AddProductScreen = () => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save product</Text>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={isSaving}>
+          {isSaving ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Text style={styles.saveButtonText}>Save product</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
 

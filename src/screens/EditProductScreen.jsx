@@ -3,21 +3,33 @@ import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Image,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import AppHeader from "../components/AppHeader";
 import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
 import { colors } from "../theme/colors";
+
+// Alert.alert ของ React Native ไม่แสดงผลบนเว็บ (react-native-web) เลย แม้จะมีปุ่มเดียวก็ตาม
+// เลยต้องสลับไปใช้ window.alert บนเว็บ ไม่งั้นข้อความ "กรอกไม่ครบ"/"สำเร็จ"/"ผิดพลาด" จะเงียบหายไปหมด
+const showAlert = (title, message, onOk) => {
+  if (Platform.OS === "web") {
+    window.alert(message ? `${title}\n\n${message}` : title);
+    onOk?.();
+    return;
+  }
+  Alert.alert(title, message, onOk ? [{ text: "ตกลง", onPress: onOk }] : undefined);
+};
 
 // รายการฟิลด์แบบ input ธรรมดา (เหมือนกับ AddProductScreen ทุกประการ)
 const FIELDS = [
@@ -34,7 +46,6 @@ const STORES = ["สาขาบางนา กรุงเทพฯ", "สา�
 
 const EditProductScreen = () => {
   // ต้อง navigate มาหน้านี้ด้วย router.push({ pathname: "/edit-product", params: { id: product.id } })
-  // (หรือ path ตาม routing ของโปรเจกต์ เช่น /products/[id]/edit)
   const { id } = useLocalSearchParams();
   const { products, updateProduct, deleteProduct } = useProducts();
 
@@ -42,6 +53,8 @@ const EditProductScreen = () => {
 
   // เติมข้อมูลเดิมของสินค้าเข้าฟอร์มตั้งแต่แรกที่เปิดหน้า
   const [form, setForm] = useState(() => ({ ...existingProduct }));
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -56,7 +69,7 @@ const EditProductScreen = () => {
   const pickFromDevice = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("ต้องขออนุญาต", "กรุณาอนุญาตให้แอปเข้าถึงคลังภาพในตั้งค่าเครื่อง");
+      showAlert("ต้องขออนุญาต", "กรุณาอนุญาตให้แอปเข้าถึงคลังภาพในตั้งค่าเครื่อง");
       return;
     }
 
@@ -74,7 +87,7 @@ const EditProductScreen = () => {
   const pasteFromClipboard = async () => {
     const hasImage = await Clipboard.hasImageAsync();
     if (!hasImage) {
-      Alert.alert(
+      showAlert(
         "ไม่พบรูปใน Clipboard",
         "ลอง copy รูปจากเว็บก่อน (กดค้างที่รูป > Copy image) แล้วค่อยกดปุ่มนี้อีกครั้ง"
       );
@@ -87,58 +100,69 @@ const EditProductScreen = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return; // กันกดซ้ำระหว่างกำลังบันทึก
+
     const missing = FIELDS.filter((f) => f.required && !form[f.key]?.trim());
     if (!form.store) missing.push({ label: "Stores availability*" });
     if (!form.photo) missing.push({ label: "Product photos*" });
 
     if (missing.length > 0) {
-      Alert.alert(
+      showAlert(
         "กรอกข้อมูลไม่ครบ",
         `กรุณากรอก: ${missing.map((f) => f.label.replace("*", "")).join(", ")}`
       );
       return;
     }
 
-    // อัปเดตสินค้าตัวเดิมใน Context ด้วย id เดิม แล้วเด้งกลับไปหน้า Product list
-    updateProduct(id, {
-      name: form.name,
-      description: form.description,
-      category: form.category,
-      price: form.price,
-      itemCode: form.itemCode,
-      stockSize: form.stockSize,
-      store: form.store,
-      photo: form.photo,
-    });
+    setIsSaving(true);
+    try {
+      // อัปเดตสินค้าตัวเดิมผ่าน backend ด้วย id เดิม แล้วเด้งกลับไปหน้า Product list
+      await updateProduct(id, {
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        price: form.price,
+        itemCode: form.itemCode,
+        stockSize: form.stockSize,
+        store: form.store,
+        photo: form.photo,
+      });
 
-    Alert.alert("สำเร็จ", "แก้ไขสินค้าเรียบร้อยแล้ว", [
-      { text: "ตกลง", onPress: () => router.push("/products") },
-    ]);
+      showAlert("สำเร็จ", "แก้ไขสินค้าเรียบร้อยแล้ว", () => router.push("/products"));
+    } catch (err) {
+      showAlert("บันทึกไม่สำเร็จ", err.message || "ไม่สามารถแก้ไขสินค้าได้ ลองใหม่อีกครั้ง");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // หมายเหตุ: Alert.alert แบบมีปุ่มเลือก (ยกเลิก/ลบ) ใช้ไม่ได้บนเว็บ (react-native-web)
   // เลยต้องเช็ค Platform แล้วใช้ window.confirm แทนเวลารันบนเว็บ ไม่งั้นปุ่ม "ลบสินค้านี้" จะกดไม่ได้เลย
   const handleDelete = () => {
+    if (isDeleting) return;
+
+    const runDelete = async () => {
+      setIsDeleting(true);
+      try {
+        await deleteProduct(id);
+        router.push("/products");
+      } catch (err) {
+        showAlert("ลบไม่สำเร็จ", err.message || "ลบสินค้าไม่สำเร็จ");
+      } finally {
+        setIsDeleting(false);
+      }
+    };
+
     if (Platform.OS === "web") {
       const confirmed = window.confirm("ต้องการลบสินค้านี้ใช่หรือไม่?");
-      if (confirmed) {
-        deleteProduct(id);
-        router.push("/products");
-      }
+      if (confirmed) runDelete();
       return;
     }
 
     Alert.alert("ยืนยันการลบ", "ต้องการลบสินค้านี้ใช่หรือไม่?", [
       { text: "ยกเลิก", style: "cancel" },
-      {
-        text: "ลบ",
-        style: "destructive",
-        onPress: () => {
-          deleteProduct(id);
-          router.push("/products");
-        },
-      },
+      { text: "ลบ", style: "destructive", onPress: runDelete },
     ]);
   };
 
@@ -174,6 +198,7 @@ const EditProductScreen = () => {
               value={form[field.key] || ""}
               onChangeText={(v) => update(field.key, v)}
               multiline={field.multiline}
+              keyboardType={field.key === "price" || field.key === "stockSize" ? "numeric" : "default"}
             />
           </View>
         ))}
@@ -220,12 +245,20 @@ const EditProductScreen = () => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save changes</Text>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={isSaving}>
+          {isSaving ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <Text style={styles.saveButtonText}>Save changes</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-          <Text style={styles.deleteButtonText}>ลบสินค้านี้</Text>
+        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} disabled={isDeleting}>
+          {isDeleting ? (
+            <ActivityIndicator size="small" color="#e53935" />
+          ) : (
+            <Text style={styles.deleteButtonText}>ลบสินค้านี้</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
 
