@@ -14,7 +14,6 @@ import {
   View,
 } from "react-native";
 import AppHeader from "../components/AppHeader";
-import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
 import { colors } from "../theme/colors";
 
@@ -53,6 +52,9 @@ const ProductListScreen = () => {
 
   const goToEdit = (product) => {
     router.push({ pathname: "/edit-product", params: { id: product.id } });
+  };
+  const goToDetail = (product) => {
+    router.push({ pathname: "/product-detail", params: { id: product.id } });
   };
 
   const handleLogout = () => {
@@ -177,7 +179,7 @@ const ProductListScreen = () => {
               key={product.id}
               style={styles.card}
               activeOpacity={0.7}
-              onPress={() => goToEdit(product)}
+              onPress={() => goToDetail(product)}
             >
               {product.photo ? (
                 <Image source={{ uri: product.photo }} style={styles.thumbnail} />
@@ -223,7 +225,6 @@ const ProductListScreen = () => {
           ))}
       </ScrollView>
 
-      <BottomNav />
     </SafeAreaView>
   );
 };

@@ -1,0 +1,24 @@
+import { router } from "expo-router";
+import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AppHeader from "../components/AppHeader";
+import { useProducts } from "../context/ProductContext";
+import { colors } from "../theme/colors";
+import { useAppLanguage } from "../i18n";
+
+const price = (value) => `฿${Number(value || 0).toLocaleString("th-TH")}`;
+export default function CartScreen() {
+  const { cart, updateCartQuantity } = useProducts();
+  const { t } = useAppLanguage();
+  const total = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
+  return <SafeAreaView style={styles.container}><AppHeader /><ScrollView contentContainerStyle={styles.scroll}>
+    <Text style={styles.title}>{t("yourCart")}</Text>
+    {cart.length === 0 ? <View style={styles.empty}><Text style={styles.emptyText}>{t("cartEmpty")}</Text><TouchableOpacity onPress={() => router.push("/products")}><Text style={styles.link}>{t("chooseProducts")}</Text></TouchableOpacity></View> : <View style={styles.layout}>
+      <View style={styles.items}>{cart.map((item) => <View key={item.id} style={styles.item}>
+        {item.photo ? <Image source={{ uri: item.photo }} style={styles.image} /> : <View style={[styles.image, styles.placeholder]}><Text>BOX</Text></View>}
+        <View style={styles.itemInfo}><Text style={styles.name}>{item.name}</Text><Text style={styles.meta}>{item.category || "-"}</Text><Text style={styles.itemPrice}>{price(item.price)}</Text><View style={styles.quantity}><TouchableOpacity onPress={() => updateCartQuantity(item.id, item.quantity - 1)}><Text style={styles.control}>−</Text></TouchableOpacity><Text style={styles.count}>{item.quantity}</Text><TouchableOpacity onPress={() => updateCartQuantity(item.id, item.quantity + 1)}><Text style={styles.control}>+</Text></TouchableOpacity><TouchableOpacity onPress={() => updateCartQuantity(item.id, 0)}><Text style={styles.remove}>{t("remove")}</Text></TouchableOpacity></View></View>
+      </View>)}</View>
+      <View style={styles.summary}><Text style={styles.summaryTitle}>{t("orderSummary")}</Text><View style={styles.line}><Text style={styles.summaryText}>{t("items")} ({cart.reduce((sum, item) => sum + item.quantity, 0)})</Text><Text style={styles.summaryText}>{price(total)}</Text></View><View style={styles.total}><Text style={styles.totalText}>{t("total")}</Text><Text style={styles.totalPrice}>{price(total)}</Text></View><TouchableOpacity style={styles.payButton} onPress={() => router.push("/checkout")}><Text style={styles.payText}>{t("payment")}</Text></TouchableOpacity></View>
+    </View>}
+  </ScrollView></SafeAreaView>;
+}
+const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: colors.bgGray }, scroll: { padding: 20, paddingBottom: 36, maxWidth: 1180, width: "100%", alignSelf: "center" }, title: { color: colors.text, fontSize: 26, fontWeight: "700", marginBottom: 20 }, layout: { flexDirection: "row", flexWrap: "wrap", gap: 20 }, items: { flexGrow: 1, flexBasis: 500, gap: 12 }, item: { flexDirection: "row", gap: 13, padding: 13, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.white }, image: { width: 80, height: 80, borderRadius: 8, backgroundColor: "#F3F4F6" }, placeholder: { alignItems: "center", justifyContent: "center" }, itemInfo: { flex: 1 }, name: { color: colors.text, fontSize: 15, fontWeight: "700" }, meta: { color: colors.textMuted, fontSize: 12, marginTop: 3 }, itemPrice: { color: colors.text, fontSize: 15, fontWeight: "700", marginTop: 7 }, quantity: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 8 }, control: { color: colors.text, fontSize: 20 }, count: { color: colors.text, fontWeight: "700" }, remove: { color: colors.primary, fontSize: 12, fontWeight: "700", marginLeft: 7 }, summary: { flexGrow: 1, flexBasis: 280, alignSelf: "flex-start", padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.white }, summaryTitle: { color: colors.text, fontSize: 17, fontWeight: "700", marginBottom: 16 }, line: { flexDirection: "row", justifyContent: "space-between" }, summaryText: { color: colors.textMuted, fontSize: 13 }, total: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderColor: colors.border, flexDirection: "row", justifyContent: "space-between" }, totalText: { color: colors.text, fontWeight: "700" }, totalPrice: { color: colors.text, fontSize: 20, fontWeight: "700" }, payButton: { marginTop: 18, minHeight: 46, borderRadius: 24, backgroundColor: colors.primary, justifyContent: "center", alignItems: "center" }, payText: { color: colors.white, fontWeight: "700" }, empty: { padding: 28, alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: colors.white }, emptyText: { color: colors.textMuted }, link: { color: colors.primary, fontWeight: "700", marginTop: 10 }, });

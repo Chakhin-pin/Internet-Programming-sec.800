@@ -86,6 +86,11 @@ const LoginScreen = () => {
             <Text style={styles.loginButtonText}>เข้าสู่ระบบ</Text>
           )}
         </TouchableOpacity>
+        <View style={styles.demoBox}>
+          <Text style={styles.demoTitle}>บัญชีทดสอบ</Text>
+          <Text style={styles.demoText}>ผู้ดูแล: admin / Admin@123</Text>
+          <Text style={styles.demoText}>ลูกค้า: customer / Customer@123</Text>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -129,6 +134,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   loginButtonText: { color: colors.white, fontSize: 14, fontWeight: "700" },
+  demoBox: { marginTop: 18, padding: 13, borderWidth: 1, borderColor: colors.border, borderRadius: 8, backgroundColor: colors.white },
+  demoTitle: { color: colors.text, fontSize: 12, fontWeight: "700", marginBottom: 5 },
+  demoText: { color: colors.textMuted, fontSize: 12, lineHeight: 18 },
 });
 
 export default LoginScreen;

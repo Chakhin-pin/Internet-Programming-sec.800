@@ -17,7 +17,6 @@ import {
   View,
 } from "react-native";
 import AppHeader from "../components/AppHeader";
-import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
 import { colors } from "../theme/colors";
 
@@ -215,7 +214,6 @@ const AddProductScreen = () => {
         </TouchableOpacity>
 
       </ScrollView>
-      <BottomNav />
     </SafeAreaView>
   );
 };

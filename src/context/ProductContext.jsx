@@ -3,6 +3,9 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Platform } from "react-native";
 
 const ProductContext = createContext(null);
+const CART_KEY = "boxbox_cart";
+const FAVORITES_KEY = "boxbox_favorites";
+const PREFERENCES_KEY = "boxbox_preferences";
 
 // Configure this per environment in .env (for example EXPO_PUBLIC_API_URL=https://api.example.com).
 // The fallback keeps the current development server working, but production should use HTTPS.
@@ -24,6 +27,16 @@ const getStoredAuth = async () => {
   return { token, userJson };
 };
 
+// ลบ session จาก storage ทั้งสองแบบเสมอ เพราะบนเว็บ token อยู่ใน localStorage
+// แต่บน native อยู่ใน AsyncStorage
+const clearStoredAuth = async () => {
+  await AsyncStorage.multiRemove(["token", "user"]);
+  if (isWeb) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }
+};
+
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
@@ -31,6 +44,9 @@ export const ProductProvider = ({ children }) => {
   const [fetchError, setFetchError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [cart, setCart] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [preferences, setPreferences] = useState({ language: "th", profile: {} });
 
   // สถานะผู้ใช้ที่ login อยู่ (null = ยังไม่ login) + สถานะกำลังเช็ค token ตอนเปิดแอปครั้งแรก
   const [user, setUser] = useState(null);
@@ -50,6 +66,51 @@ export const ProductProvider = ({ children }) => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const read = async (key, fallback) => {
+        const raw = isWeb ? localStorage.getItem(key) : await AsyncStorage.getItem(key);
+        try { return raw ? JSON.parse(raw) : fallback; } catch { return fallback; }
+      };
+      setCart(await read(CART_KEY, []));
+      setFavorites(await read(FAVORITES_KEY, []));
+      setPreferences(await read(PREFERENCES_KEY, { language: "th", profile: {} }));
+    })();
+  }, []);
+
+  const persist = async (key, value) => {
+    const serialized = JSON.stringify(value);
+    if (isWeb) localStorage.setItem(key, serialized);
+    else await AsyncStorage.setItem(key, serialized);
+  };
+
+  const addToCart = async (product, quantity = 1) => {
+    const existing = cart.find((item) => item.id === product.id);
+    const next = existing
+      ? cart.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item)
+      : [...cart, { ...product, quantity }];
+    setCart(next);
+    await persist(CART_KEY, next);
+  };
+
+  const updateCartQuantity = async (id, quantity) => {
+    const next = quantity <= 0 ? cart.filter((item) => item.id !== id) : cart.map((item) => item.id === id ? { ...item, quantity } : item);
+    setCart(next);
+    await persist(CART_KEY, next);
+  };
+
+  const clearCart = async () => { setCart([]); await persist(CART_KEY, []); };
+  const toggleFavorite = async (id) => {
+    const next = favorites.includes(id) ? favorites.filter((favoriteId) => favoriteId !== id) : [...favorites, id];
+    setFavorites(next);
+    await persist(FAVORITES_KEY, next);
+  };
+  const updatePreferences = async (changes) => {
+    const next = { ...preferences, ...changes, profile: { ...preferences.profile, ...(changes.profile || {}) } };
+    setPreferences(next);
+    await persist(PREFERENCES_KEY, next);
+  };
 
   // helper ยิง request แนบ JWT ให้อัตโนมัติทุกครั้ง
 // ใหม่ (แทนทับ)
@@ -71,11 +132,14 @@ export const ProductProvider = ({ children }) => {
 
     if (res.status === 401) {
       if (!options.skipAuthRedirect) {
-        await AsyncStorage.removeItem("token");
-        await AsyncStorage.removeItem("user");
+        await clearStoredAuth();
         setUser(null);
       }
-      throw new Error(data.error || "UNAUTHORIZED");
+      // ใช้รหัสที่แยกได้ชัดเจน เพื่อให้หน้าที่โหลดข้อมูลไม่ log error
+      // ในกรณี session หมดอายุ (ระบบจะพาผู้ใช้กลับไป login เอง)
+      const authError = new Error(data.error || "UNAUTHORIZED");
+      authError.code = "UNAUTHORIZED";
+      throw authError;
     }
 
     if (!res.ok) {
@@ -104,17 +168,26 @@ export const ProductProvider = ({ children }) => {
 };
 
   const logout = async () => {
-  await AsyncStorage.removeItem("token");
-  await AsyncStorage.removeItem("user");
-  if (isWeb) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  }
+  await clearStoredAuth();
   setUser(null);
   setProducts([]);
   setTotal(0);
   setFetchError(null);
 };
+
+  const changeOwnRole = async (role) => {
+    const data = await apiCall("/api/auth/role", {
+      method: "PUT",
+      body: JSON.stringify({ role }),
+    });
+    await AsyncStorage.setItem("token", data.token);
+    await AsyncStorage.setItem("user", JSON.stringify(data.user));
+    if (isWeb) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+    }
+    setUser(data.user);
+  };
 
   // ดึงรายการสินค้า พร้อม search + pagination
   const loadProducts = async (query = searchQuery, pageNum = 1) => {
@@ -140,14 +213,23 @@ export const ProductProvider = ({ children }) => {
         itemCode: row.productCode ?? "",
         store: row.storeAvailability ?? "",
         photo: row.image ?? row.image_url ?? null,
+        brand: row.brand ?? "",
+        sizes: row.sizes ?? "",
+        location: row.location ?? "",
+        orderName: row.orderName ?? "",
+        status: row.status ?? "",
       }));
 
       setProducts(mapped);
       setTotal(data.total ?? mapped.length);
       setPage(pageNum);
     } catch (err) {
-      console.error("Error fetching products:", err);
-      setFetchError(err.message || "Unable to load products from backend.");
+      // 401 เป็นการหมดอายุของ session ตามปกติ: apiCall ล้าง token และ
+      // setUser(null) แล้ว ทำให้ Expo Router กลับไปหน้า login โดยอัตโนมัติ
+      if (err.code !== "UNAUTHORIZED") {
+        console.error("Error fetching products:", err);
+        setFetchError(err.message || "Unable to load products from backend.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -226,11 +308,20 @@ export const ProductProvider = ({ children }) => {
         addProduct,
         updateProduct,
         deleteProduct,
+        cart,
+        favorites,
+        preferences,
+        addToCart,
+        updateCartQuantity,
+        clearCart,
+        toggleFavorite,
+        updatePreferences,
         user,
         isAdmin,
         isAuthReady,
         login,
         logout,
+        changeOwnRole,
       }}
     >
       {children}

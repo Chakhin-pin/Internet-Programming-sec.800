@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppHeader from '../components/AppHeader';
-import BottomNav from '../components/BottomNav';
 import { useProducts } from '../context/ProductContext';
 import { colors } from '../theme/colors';
 
@@ -41,7 +40,6 @@ export default function CategoriesScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
-      <BottomNav />
     </SafeAreaView>
   );
 }

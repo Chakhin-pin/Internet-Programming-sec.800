@@ -16,7 +16,6 @@ import {
   View,
 } from "react-native";
 import AppHeader from "../components/AppHeader";
-import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
 import { colors } from "../theme/colors";
 
@@ -189,7 +188,6 @@ const EditProductScreen = () => {
             <Text style={styles.backButtonText}>กลับไปหน้ารายการสินค้า</Text>
           </TouchableOpacity>
         </View>
-        <BottomNav />
       </SafeAreaView>
     );
   }
@@ -272,7 +270,6 @@ const EditProductScreen = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      <BottomNav />
     </SafeAreaView>
   );
 };

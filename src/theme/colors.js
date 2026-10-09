@@ -1,18 +1,18 @@
 export const colors = {
-  primary: "#4F46E5",
-  primaryDark: "#312E81",
-  primaryLight: "#E0E7FF",
-  primarySoft: "#F5F7FF",
+  primary: "#DA3743",
+  primaryDark: "#B72834",
+  primaryLight: "#FCE8EA",
+  primarySoft: "#FFF6F6",
   white: "#FFFFFF",
-  bgGray: "#F8FAFC",
+  bgGray: "#FAFAFA",
   surface: "#FFFFFF",
-  border: "#E2E8F0",
-  text: "#172033",
-  textMuted: "#64748B",
+  border: "#E5E7EB",
+  text: "#2D333F",
+  textMuted: "#65717D",
   success: "#059669",
   danger: "#DC2626",
   amber: "#B45309",
   shadow: "#0F172A",
 };
 
-export const chartPalette = ["#4F46E5", "#0D9488", "#F59E0B", "#8B5CF6"];
+export const chartPalette = ["#DA3743", "#0D9488", "#F59E0B", "#8B5CF6"];

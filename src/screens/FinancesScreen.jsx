@@ -1,6 +1,5 @@
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import AppHeader from "../components/AppHeader";
-import BottomNav from "../components/BottomNav";
 import { useProducts } from "../context/ProductContext";
 import { chartPalette, colors } from "../theme/colors";
 
@@ -65,7 +64,6 @@ export default function FinancesScreen() {
           </>
         )}
       </ScrollView>
-      <BottomNav />
     </SafeAreaView>
   );
 }

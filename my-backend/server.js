@@ -118,6 +118,28 @@
     }
   });
 
+  // An administrator may switch only their own role. A new JWT is issued so
+  // the role in every subsequent protected request matches the database.
+  app.put('/api/auth/role', authenticateToken, requireAdmin, async (req, res) => {
+    const role = req.body?.role;
+    if (!['admin', 'customer'].includes(role)) {
+      return res.status(400).json({ error: 'Role must be admin or customer' });
+    }
+    try {
+      await pool.query('UPDATE users SET role = ? WHERE user_id = ?', [role, req.user.userId]);
+      const user = { id: req.user.userId, username: req.user.username, role };
+      const token = jwt.sign(
+        { userId: user.id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+      );
+      return res.json({ token, user });
+    } catch (error) {
+      console.error('Role update error:', error.message);
+      return res.status(500).json({ error: 'Unable to update role' });
+    }
+  });
+
   // GET all products - รองรับ search (q) + pagination (page, limit)
   // ต้อง login ก่อนถึงจะดูสินค้าได้ (authenticateToken) แต่ไม่ต้องเป็น admin
   app.get('/api/products', authenticateToken, async (req, res) => {
@@ -180,7 +202,7 @@
   });
 
   // POST create new product
-  app.post('/api/products', authenticateToken, async (req, res) => {
+  app.post('/api/products', authenticateToken, requireAdmin, async (req, res) => {
     try {
       const {
         name, stock, category, location, image, status, brand, sizes,
